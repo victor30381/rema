@@ -4,6 +4,8 @@ import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
+import { LoginPage } from './components/LoginPage';
+import { useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot, query, orderBy, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import './App.css';
@@ -25,6 +27,7 @@ export interface HistoryEntry {
 // We keep the HistoryEntry interface to minimize refactoring Dashboard/HistoryView.
 
 function App() {
+  const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [activeView, setActiveView] = useState<'home' | 'history'>('home');
@@ -33,6 +36,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
+    if (!user) return; // Don't subscribe to Firestore if not logged in
     const q = query(collection(db, 'studies'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(document => {
@@ -80,7 +84,12 @@ function App() {
       setHistory(data as HistoryEntry[]);
     });
     return unsubscribe;
-  }, []);
+  }, [user]);
+
+  // Auth gating — show login page if not authenticated or still loading
+  if (loading || !user) {
+    return <LoginPage />;
+  }
 
   const addToHistory = async (entry: HistoryEntry) => {
     const resultsMap: any = {};
