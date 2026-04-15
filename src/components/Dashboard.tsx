@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Search, Dna, Sprout, ScrollText, Search as MagnifyingGlass, BookOpen, Users, Layers, Sparkles, ArrowRight, Loader, Copy, Check, RotateCcw, ChevronDown, Edit2, RefreshCw, CheckCircle, Send, FileText } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Dna, Sprout, ScrollText, Search as MagnifyingGlass, BookOpen, Users, Layers, Sparkles, ArrowRight, Loader, Copy, Check, RotateCcw, ChevronDown, Edit2, RefreshCw, CheckCircle, Send, FileText, LogIn, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AgentCard } from './AgentCard';
 import { httpsCallable } from "firebase/functions";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { functions, auth, googleProvider } from '../firebase';
 import { marked } from "marked";
 import { useSettings } from '../contexts/SettingsContext';
@@ -53,6 +53,10 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
   const [loadingVerseText, setLoadingVerseText] = useState(false);
   const [exportingStates, setExportingStates] = useState<Record<string, boolean>>({});
   const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const [lastExportedUrl, setLastExportedUrl] = useState<string | null>(null);
+  const [showExportBanner, setShowExportBanner] = useState(false);
 
   const agents: Agent[] = [
     { 
@@ -112,6 +116,63 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
   ];
 
 
+  // Check for stored Google token on mount (e.g., after a redirect)
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('rema_google_token');
+    if (storedToken) {
+      setGoogleToken(storedToken);
+      setGoogleConnected(true);
+    }
+
+    // Handle redirect result from signInWithRedirect
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken || null;
+        if (token) {
+          setGoogleToken(token);
+          setGoogleConnected(true);
+          sessionStorage.setItem('rema_google_token', token);
+        }
+      }
+    }).catch((err) => {
+      console.warn('Redirect result error:', err);
+    });
+  }, []);
+
+  const connectGoogleAccount = useCallback(async () => {
+    setConnectingGoogle(true);
+    try {
+      // Try popup first (works on desktop and some mobile browsers)
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken || null;
+      if (token) {
+        setGoogleToken(token);
+        setGoogleConnected(true);
+        sessionStorage.setItem('rema_google_token', token);
+      }
+    } catch (popupError: any) {
+      // If popup is blocked or fails, try redirect
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request' ||
+          popupError.code === 'auth/internal-error') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          // Page will redirect, no further code runs
+        } catch (redirectError) {
+          console.error('Redirect auth error:', redirectError);
+          alert('No se pudo conectar con Google. Intenta de nuevo.');
+        }
+      } else {
+        console.error('Auth error:', popupError);
+        alert('Error al conectar con Google: ' + popupError.message);
+      }
+    } finally {
+      setConnectingGoogle(false);
+    }
+  }, []);
 
   // Load a history entry when one is selected from the sidebar
   useEffect(() => {
@@ -428,24 +489,37 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
   };
 
   const exportAgentToDocs = async (agentTitle: string, resultText: string) => {
-    // Abrimos la pestaña sincrónicamente para evitar el bloqueador de popups en móviles
-    const newTab = window.open('', '_blank');
-    if (newTab) {
-      newTab.document.write('<div style="font-family:sans-serif; text-align:center; margin-top:50px;"><h2>Exportando a Google Docs...</h2><p>Por favor no cierres esta ventana, estamos creando tu documento.</p></div>');
-    }
-
     try {
       setExportingStates(prev => ({ ...prev, [agentTitle]: true }));
       
       let currentToken = googleToken;
 
+      // If no token, try to authenticate first
       if (!currentToken) {
-        if (newTab) newTab.close(); // Cerramos la pestaña temporal si vamos a usar signInWithPopup para no saturar
-        const result = await signInWithPopup(auth, googleProvider);
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        currentToken = credential?.accessToken || null;
-        if (!currentToken) throw new Error("No se pudo obtener el token de Google.");
-        setGoogleToken(currentToken);
+        try {
+          const result = await signInWithPopup(auth, googleProvider);
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          currentToken = credential?.accessToken || null;
+          if (currentToken) {
+            setGoogleToken(currentToken);
+            setGoogleConnected(true);
+            sessionStorage.setItem('rema_google_token', currentToken);
+          }
+        } catch (popupErr: any) {
+          // If popup fails (GitHub Pages, mobile, etc.), prompt user to connect first
+          if (popupErr.code === 'auth/popup-blocked' || 
+              popupErr.code === 'auth/popup-closed-by-user' ||
+              popupErr.code === 'auth/internal-error') {
+            alert('⚠️ Tu navegador bloqueó la ventana de autenticación.\n\nPor favor, primero haz clic en "Conectar Google" en la barra superior y luego intenta exportar de nuevo.');
+            setExportingStates(prev => ({ ...prev, [agentTitle]: false }));
+            return;
+          }
+          throw popupErr;
+        }
+      }
+
+      if (!currentToken) {
+        throw new Error("No se pudo obtener el token de Google. Conecta tu cuenta primero.");
       }
 
       // Organizar en carpetas en Google Drive
@@ -517,20 +591,29 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
       }
 
       const file = await response.json();
-      
       const docsUrl = `https://docs.google.com/document/d/${file.id}/edit`;
-      if (newTab && !newTab.closed) {
-        newTab.location.href = docsUrl;
-      } else {
-        window.open(docsUrl, '_blank');
+      
+      // Show the exported URL in a banner instead of relying on popups
+      setLastExportedUrl(docsUrl);
+      setShowExportBanner(true);
+      
+      // Also try to open it (may be blocked on some browsers, but the banner is the fallback)
+      try {
+        const opened = window.open(docsUrl, '_blank');
+        if (!opened) {
+          // window.open was blocked - the banner already shows the link
+          console.log('Popup blocked, using banner link');
+        }
+      } catch {
+        // Silently fail - user can use the banner link
       }
       
     } catch (error: any) {
-      if (newTab && !newTab.closed) newTab.close();
-      
       if (error.message === "TokenExpired") {
         setGoogleToken(null);
-        alert("Tu sesión de Google finalizó. Por favor, haz clic de nuevo para autorizar el guardado.");
+        setGoogleConnected(false);
+        sessionStorage.removeItem('rema_google_token');
+        alert("Tu sesión de Google expiró. Por favor, conecta de nuevo haciendo clic en 'Conectar Google'.");
       } else {
         console.error("Error exporting to docs", error);
         alert("Error al exportar a Google Docs: " + error.message);
@@ -540,21 +623,8 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
     }
   };
 
-  const toggleApproveAgent = async (agentTitle: string, resultText: string) => {
+  const toggleApproveAgent = async (agentTitle: string, _resultText: string) => {
     const isCurrentlyApproved = globalResults[agentTitle]?.approved;
-    
-    // If we want to approve and export, do the export FIRST so the popup 
-    // happens immediately in the click event stack without state updates delaying it.
-    if (!isCurrentlyApproved) {
-      try {
-        await exportAgentToDocs(agentTitle, resultText);
-      } catch (error) {
-        // If export fails, we might still want to approve it?
-        // Let's continue to approve it so the Resumen can still be built
-        console.warn("Export completed with error, proceeding with approval", error);
-      }
-    }
-    
     setGlobalResults(prev => ({ ...prev, [agentTitle]: { ...prev[agentTitle], approved: !isCurrentlyApproved, isEditing: false } }));
   };
 
@@ -631,7 +701,49 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                 </h3>
               </div>
               <div className="section-line" />
-              <div className="result-actions">
+              <div className="result-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {!googleConnected ? (
+                  <button
+                    className="action-btn"
+                    onClick={connectGoogleAccount}
+                    disabled={connectingGoogle}
+                    style={{
+                      background: 'linear-gradient(135deg, #4285f4, #34a853)',
+                      border: 'none',
+                      color: '#fff',
+                      fontWeight: 600,
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      cursor: connectingGoogle ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.8rem',
+                      boxShadow: '0 2px 8px rgba(66, 133, 244, 0.3)'
+                    }}
+                    title="Conecta tu cuenta de Google para exportar reportes a Docs"
+                    id="connect-google-btn"
+                  >
+                    {connectingGoogle ? <Loader className="spin" size={14} /> : <LogIn size={14} />}
+                    Conectar Google
+                  </button>
+                ) : (
+                  <span 
+                    style={{ 
+                      fontSize: '0.78rem', 
+                      color: 'var(--neon-green)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(0, 255, 150, 0.08)',
+                      border: '1px solid rgba(0, 255, 150, 0.2)'
+                    }}
+                  >
+                    <CheckCircle size={12} /> Google conectado
+                  </span>
+                )}
                 <button 
                   className={`action-btn back-button ${isSearching ? 'disabled-btn' : ''}`}
                   onClick={() => { 
@@ -649,6 +761,69 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                 </button>
               </div>
             </div>
+            
+            {/* Export success banner */}
+            {showExportBanner && lastExportedUrl && (
+              <div 
+                className="export-banner"
+                style={{
+                  marginBottom: '16px',
+                  padding: '14px 20px',
+                  background: 'linear-gradient(135deg, rgba(52, 168, 83, 0.15), rgba(66, 133, 244, 0.15))',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(52, 168, 83, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  animation: 'fadeIn 0.3s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <CheckCircle size={20} color="#34a853" />
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    ✅ Documento exportado exitosamente a Google Docs
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <a
+                    href={lastExportedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      background: '#4285f4',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}
+                    id="open-docs-link"
+                  >
+                    <ExternalLink size={14} /> Abrir en Google Docs
+                  </a>
+                  <button
+                    onClick={() => { setShowExportBanner(false); setLastExportedUrl(null); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '1.1rem',
+                      padding: '4px 8px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
             
             {verse && (
               <div className="verse-reference-box" style={{ 
