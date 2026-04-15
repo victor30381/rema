@@ -1,4 +1,4 @@
-import { Bell, Search, Menu } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 import './Header.css';
 import logoUrl from '../assets/logo.png';
 

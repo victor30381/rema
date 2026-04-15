@@ -1,4 +1,4 @@
-import { Home, History, Settings, HelpCircle, BookOpen, X } from 'lucide-react';
+import { Home, History, Settings, X } from 'lucide-react';
 import './Sidebar.css';
 import logoUrl from '../assets/logo.png';
 
