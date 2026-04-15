@@ -5,7 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { db } from './firebase';
-import { collection, onSnapshot, query, orderBy, setDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import './App.css';
 
 export interface HistoryEntry {
@@ -20,7 +20,6 @@ export interface HistoryEntry {
   }>;
 }
 
-const HISTORY_KEY = 'rema_history';
 
 // Using Firestore instead of localStorage so we don't need these anymore.
 // We keep the HistoryEntry interface to minimize refactoring Dashboard/HistoryView.

@@ -209,7 +209,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
     // Wait 4.5 seconds after ObtenerTexto before launching Agent 1 to respect Free Tier Limits
     await new Promise(resolve => setTimeout(resolve, 4500));
 
-    const promises: any[] = []; // Not needed anymore since we do it sequentially inside the loop
+
 
     let currentIndex = 0;
     const processQueue = async () => {
