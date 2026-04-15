@@ -7,7 +7,7 @@ import { SettingsView } from './components/SettingsView';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './contexts/AuthContext';
 import { db } from './firebase';
-import { collection, onSnapshot, query, orderBy, setDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import './App.css';
 
 export interface HistoryEntry {
@@ -37,7 +37,7 @@ function App() {
 
   useEffect(() => {
     if (!user) return; // Don't subscribe to Firestore if not logged in
-    const q = query(collection(db, 'studies'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'studies'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(document => {
         const d = document.data();
@@ -114,6 +114,7 @@ function App() {
        createdAt: new Date(entry.date),
        results: resultsMap,
        ...(resumenText ? { resumen: resumenText } : {}),
+       userId: user.uid,
        chatId: 'pc_app'
     });
   };
