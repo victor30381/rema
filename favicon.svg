@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#131620"/>
+      <stop offset="100%" stop-color="#1a1d2e"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="16" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00deff"/>
+      <stop offset="100%" stop-color="#9048e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Book shape -->
+  <path d="M16 14C16 14 32 18 32 18L32 50C32 50 16 46 16 46V14Z" stroke="url(#glow)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 14C48 14 32 18 32 18L32 50C32 50 48 46 48 46V14Z" stroke="url(#glow)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cross / light ray -->
+  <line x1="32" y1="22" x2="32" y2="38" stroke="#00deff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  <line x1="26" y1="28" x2="38" y2="28" stroke="#00deff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  <!-- Sparkle dots -->
+  <circle cx="24" cy="20" r="1.5" fill="#00deff" opacity="0.6"/>
+  <circle cx="40" cy="20" r="1.5" fill="#9048e5" opacity="0.6"/>
+  <circle cx="32" cy="44" r="1.5" fill="#00deff" opacity="0.4"/>
+</svg>
