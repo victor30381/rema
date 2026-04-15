@@ -1,5 +1,6 @@
 import { Bell, Search, Menu } from 'lucide-react';
 import './Header.css';
+import logoUrl from '../assets/logo.png';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -14,7 +15,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </button>
         <div className="user-profile">
           <div className="avatar">
-            <div className="avatar-placeholder" />
+            <img src={logoUrl} alt="Rema Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div className="user-info">
             <span className="user-name">Bienvenido</span>
@@ -24,11 +25,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       <div className="header-actions">
-        <button className="notification-btn" aria-label="Notificaciones">
-          <Bell size={20} className="bell-icon" />
-          <span className="notification-dot"></span>
-        </button>
-        
         <div className="mini-search">
           <Search size={18} className="search-icon" />
           <input type="text" placeholder="Buscar..." />

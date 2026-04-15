@@ -428,12 +428,19 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
   };
 
   const exportAgentToDocs = async (agentTitle: string, resultText: string) => {
+    // Abrimos la pestaña sincrónicamente para evitar el bloqueador de popups en móviles
+    const newTab = window.open('', '_blank');
+    if (newTab) {
+      newTab.document.write('<div style="font-family:sans-serif; text-align:center; margin-top:50px;"><h2>Exportando a Google Docs...</h2><p>Por favor no cierres esta ventana, estamos creando tu documento.</p></div>');
+    }
+
     try {
       setExportingStates(prev => ({ ...prev, [agentTitle]: true }));
       
       let currentToken = googleToken;
 
       if (!currentToken) {
+        if (newTab) newTab.close(); // Cerramos la pestaña temporal si vamos a usar signInWithPopup para no saturar
         const result = await signInWithPopup(auth, googleProvider);
         const credential = GoogleAuthProvider.credentialFromResult(result);
         currentToken = credential?.accessToken || null;
@@ -510,9 +517,17 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
       }
 
       const file = await response.json();
-      window.open(`https://docs.google.com/document/d/${file.id}/edit`, '_blank');
+      
+      const docsUrl = `https://docs.google.com/document/d/${file.id}/edit`;
+      if (newTab && !newTab.closed) {
+        newTab.location.href = docsUrl;
+      } else {
+        window.open(docsUrl, '_blank');
+      }
       
     } catch (error: any) {
+      if (newTab && !newTab.closed) newTab.close();
+      
       if (error.message === "TokenExpired") {
         setGoogleToken(null);
         alert("Tu sesión de Google finalizó. Por favor, haz clic de nuevo para autorizar el guardado.");

@@ -39,7 +39,7 @@
   height: 40px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,12 +47,7 @@
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.15);
 }
 
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background-image: url('https://ui-avatars.com/api/?name=R&background=131620&color=00deff&bold=true');
-  background-size: cover;
-}
+
 
 .user-info {
   display: flex;

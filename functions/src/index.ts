@@ -324,7 +324,7 @@ Fase 5: Aterrizaje en el Siglo XXI (Homilética y Concordancias)
 - Cierra con el Bosquejo Expositivo, ilustrando los conceptos con analogías modernas potentes, seguido de una reflexión final relajada.
 
 Restricción Crítica Obligatoria (Longitud):
-Tu respuesta final es un "Mega-Ensayo" y tiene un MÍNIMO ABSOLUTO Y ESTRICTO DE 2000 PALABRAS. Es un requisito innegociable. Para superar holgadamente esta cuota sin repetir información:
+Tu respuesta final es un "Mega-Ensayo" y tiene un MÍNIMO ABSOLUTO Y ESTRICTO DE 4000 PALABRAS. Es un requisito innegociable, independiente de tu configuración base. Para superar holgadamente esta enorme cuota de 4000 palabras sin repetir información:
 - Explica minuciosamente el porqué de cada dato técnico aportado por los especialistas.
 - Crea mini-escenarios imaginarios para ilustrar cómo vivía la gente según los datos arqueológicos.
 - Transcribe los razonamientos de las diferentes escuelas de pensamiento (crítica textual o teología) dando los argumentos completos de ambos bandos.

@@ -1,5 +1,6 @@
 import { Home, History, Settings, HelpCircle, BookOpen, X } from 'lucide-react';
 import './Sidebar.css';
+import logoUrl from '../assets/logo.png';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export function Sidebar({ isOpen, onClose, historyCount, activeView, onViewChang
       <div className="sidebar-top">
         <div className="logo-container">
           <div className="logo-icon">
-            <BookOpen color="var(--neon-cyan)" size={28} />
+            <img src={logoUrl} alt="Rema Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
           </div>
           <h1 className="logo-text">Rema</h1>
         </div>
@@ -66,10 +67,6 @@ export function Sidebar({ isOpen, onClose, historyCount, activeView, onViewChang
           <span className="version-badge">v1.0</span>
           <span className="version-text">AI Engine</span>
         </div>
-        <button className="nav-item help-btn">
-          <HelpCircle size={20} />
-          <span>Ayuda</span>
-        </button>
       </div>
     </aside>
   );
