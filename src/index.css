@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ===== Dark Theme (Default) ===== */
+:root,
+[data-theme="dark"] {
+  --bg-main: #131620;
+  --bg-sidebar: #11131a;
+  --bg-card: #181a25;
+  --bg-elevated: #1e2030;
+  --text-main: #f0f0f0;
+  --text-secondary: #c0c4cc;
+  --text-muted: #8d929b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --input-bg-focus: rgba(255, 255, 255, 0.06);
+  --hover-bg: rgba(255, 255, 255, 0.04);
+  --card-gradient-start: rgba(255, 255, 255, 0.04);
+  --card-gradient-end: rgba(255, 255, 255, 0.01);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --scrollbar-track: #131620;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+
+  /* Neon Colors */
+  --neon-cyan: #00deff;
+  --accent-rgb: 0, 222, 255;
+  --neon-pink: #ed1576;
+  --neon-orange: #f28b24;
+  --neon-green: #37c871;
+  --neon-yellow: #f6c836;
+  --neon-purple: #9048e5;
+  --neon-blue: #3661f4;
+  --neon-red: #f44e3b;
+
+  /* Content */
+  --content-font-size: 16px;
+}
+
+/* ===== Light Theme ===== */
+[data-theme="light"] {
+  --bg-main: #f5f6fa;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #f0f1f5;
+  --text-main: #1a1c2e;
+  --text-secondary: #4a4d63;
+  --text-muted: #7c7f94;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --overlay-bg: rgba(255, 255, 255, 0.8);
+  --input-bg: rgba(0, 0, 0, 0.03);
+  --input-bg-focus: rgba(0, 0, 0, 0.06);
+  --hover-bg: rgba(0, 0, 0, 0.03);
+  --card-gradient-start: rgba(0, 0, 0, 0.02);
+  --card-gradient-end: rgba(0, 0, 0, 0.005);
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --scrollbar-track: #f5f6fa;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.1);
+
+  --neon-pink: #d91068;
+  --neon-orange: #e07a15;
+  --neon-green: #2ba85c;
+  --neon-yellow: #d4a520;
+  --neon-purple: #7a3abf;
+  --neon-blue: #2a4fd6;
+  --neon-red: #d9432f;
+}
+
+/* ===== Disable Animations ===== */
+.no-animations,
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ===== Content Font Size (applied to markdown bodies) ===== */
+.markdown-body {
+  font-size: var(--content-font-size, 16px);
+}
+.markdown-body p,
+.markdown-body li,
+.markdown-body td,
+.markdown-body blockquote {
+  font-size: var(--content-font-size, 16px);
+  line-height: 1.75;
+}
