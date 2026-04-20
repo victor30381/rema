@@ -964,7 +964,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                           ) : resumenRes?.result ? (
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <span className="done-text">✓</span>
-                              {resumenRes?.exportedToDocs && <FileText size={14} style={{ color: '#4285f4', margin: '0 4px' }} title="Subido a Docs" />}
+                              {resumenRes?.exportedToDocs && <FileText size={14} style={{ color: '#4285f4', margin: '0 4px' }} />}
                               <button 
                                 onClick={(e) => { e.stopPropagation(); invokeAgent("Resumen", true); }}
                                 title="Rehacer resumen"
@@ -1117,7 +1117,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                               title={res.approved ? "Quitar aprobación" : "Aprobar y Exportar"}
                               style={{ background: res.approved ? 'rgba(0, 255, 150, 0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${res.approved ? 'var(--neon-green)' : 'rgba(255,255,255,0.15)'}`, borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', color: res.approved ? 'var(--neon-green)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: res.approved ? 'bold' : 'normal', transition: 'all 0.2s' }}
                             >
-                              <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'} {res.exportedToDocs && <FileText size={12} style={{ marginLeft: '4px', color: '#4285f4' }} title="Subido a Docs" />}
+                              <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'} {res.exportedToDocs && <FileText size={12} style={{ marginLeft: '4px', color: '#4285f4' }} />}
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); invokeAgent(agent.title, true); }}
