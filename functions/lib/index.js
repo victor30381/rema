@@ -54,9 +54,9 @@ const runAnalyzeVerse = async (requestData, geminiApiKeySecret) => {
     const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
     const isEnglish = language === 'en';
     const responseLengthMap = {
-        concise: { min: 1500, label: isEnglish ? '1500 words' : '1500 palabras' },
+        concise: { min: 2500, label: isEnglish ? '2500 words' : '2500 palabras' },
         standard: { min: 2500, label: isEnglish ? '2500 words' : '2500 palabras' },
-        detailed: { min: 4000, label: isEnglish ? '4000 words' : '4000 palabras' },
+        detailed: { min: 2500, label: isEnglish ? '2500 words' : '2500 palabras' },
     };
     const lengthConfig = responseLengthMap[responseLength] || responseLengthMap.standard;
     const baseInstruction = isEnglish
@@ -346,7 +346,7 @@ Fase 5: Aterrizaje en el Siglo XXI (Homilética y Concordancias)
 - Cierra con el Bosquejo Expositivo, ilustrando los conceptos con analogías modernas potentes, seguido de una reflexión final.
 
 Restricción Crítica Obligatoria (Longitud):
-Tu respuesta final es un "Mega-Ensayo" y tiene un MÍNIMO ABSOLUTO Y ESTRICTO DE 4000 PALABRAS. Es un requisito innegociable, independiente de tu configuración base. Para superar holgadamente esta enorme cuota de 4000 palabras sin repetir información:
+Tu respuesta final es un "Mega-Ensayo" y tiene un MÍNIMO ABSOLUTO Y ESTRICTO DE 5000 PALABRAS. Es un requisito innegociable, independiente de tu configuración base. Para superar holgadamente esta enorme cuota de 5000 palabras sin repetir información:
 - Explica minuciosamente el porqué de cada dato técnico aportado por los especialistas.
 - Crea mini-escenarios imaginarios para ilustrar cómo vivía la gente según los datos arqueológicos.
 - Transcribe los razonamientos de las diferentes escuelas de pensamiento (crítica textual o teología) dando los argumentos completos de ambos bandos.

@@ -29,6 +29,7 @@ interface AgentResult {
   isEditing?: boolean;
   editPrompt?: string;
   selectedText?: string;
+  exportedToDocs?: boolean;
 }
 
 interface DashboardProps {
@@ -57,6 +58,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [lastExportedUrl, setLastExportedUrl] = useState<string | null>(null);
   const [showExportBanner, setShowExportBanner] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const agents: Agent[] = [
     { 
@@ -193,47 +195,58 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
           error: null,
           wordCount: data.wordCount,
           approved: data.approved || false,
+          exportedToDocs: data.exportedToDocs || false,
           isEditing: false,
           editPrompt: ''
         };
       });
       setGlobalResults(restoredResults);
+      setCurrentSessionId(loadedEntry.id);
       onClearLoaded();
     }
   }, [loadedEntry, onClearLoaded]);
 
-  // Auto-save to history when all agents finish (no more loading)
+  // Auto-save to history whenever there's a new measurable final state
   useEffect(() => {
-    if (!verse || isSearching) return;
-    if (!settings.autoSaveHistory) return; // Respect settings
+    if (!verse || !currentSessionId) return;
+    if (!settings.autoSaveHistory) return; 
     
     const entries = Object.entries(globalResults);
     if (entries.length === 0) return;
     
-    const anyLoading = entries.some(([, r]) => r.loading);
     const anySuccess = entries.some(([, r]) => r.result !== null);
     
-    if (!anyLoading && anySuccess) {
-      const resultsToSave: Record<string, { result: string | null; wordCount?: number; approved?: boolean }> = {};
+    if (anySuccess) {
+      const resultsToSave: Record<string, { result: string | null; wordCount?: number; approved?: boolean; exportedToDocs?: boolean }> = {};
       entries.forEach(([title, r]) => {
         if (r.result) {
           resultsToSave[title] = {
             result: r.result,
             wordCount: r.wordCount,
-            approved: r.approved
+            approved: r.approved,
+            exportedToDocs: r.exportedToDocs
           };
         }
       });
 
       onSaveToHistory({
-        id: `${verse}-${Date.now()}`,
+        id: currentSessionId,
         verse,
         verseText,
         date: new Date().toISOString(),
         results: resultsToSave
       });
     }
-  }, [isSearching]); // Only trigger when search completes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    JSON.stringify(Object.values(globalResults).map(r => ({
+      len: r.result ? r.result.length : 0, 
+      app: r.approved, 
+      exp: r.exportedToDocs
+    }))),
+    verseText,
+    currentSessionId
+  ]);
 
   const handleGlobalSearch = async () => {
     if (!verse.trim()) {
@@ -246,6 +259,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
     setExpandedAgent(null);
     setVerseText(null);
     setLoadingVerseText(true);
+    setCurrentSessionId(`${verse}-${Date.now()}`);
     
     const targetAgents = agents.filter(a => a.title !== "Resumen");
     
@@ -608,6 +622,12 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
         // Silently fail - user can use the banner link
       }
       
+      // Update state to remember we exported it
+      setGlobalResults(prev => ({ 
+        ...prev, 
+        [agentTitle]: { ...prev[agentTitle], exportedToDocs: true } 
+      }));
+
     } catch (error: any) {
       if (error.message === "TokenExpired") {
         setGoogleToken(null);
@@ -944,6 +964,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                           ) : resumenRes?.result ? (
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <span className="done-text">✓</span>
+                              {resumenRes?.exportedToDocs && <FileText size={14} style={{ color: '#4285f4', margin: '0 4px' }} title="Subido a Docs" />}
                               <button 
                                 onClick={(e) => { e.stopPropagation(); invokeAgent("Resumen", true); }}
                                 title="Rehacer resumen"
@@ -999,8 +1020,13 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                                <button className="action-btn" onClick={(e) => { e.stopPropagation(); setAgentEditing("Resumen", !resumenRes.isEditing); }}>
                                  <Edit2 size={14} /> Editar
                                </button>
-                               <button className="action-btn gdocs-btn" onClick={(e) => { e.stopPropagation(); exportAgentToDocs("Resumen", resumenRes.result!); }} disabled={exportingStates["Resumen"]}>
-                                 {exportingStates["Resumen"] ? <Loader className="spin" size={14} /> : <FileText size={14} />} Docs
+                               <button 
+                                 className="action-btn gdocs-btn" 
+                                 onClick={(e) => { e.stopPropagation(); exportAgentToDocs("Resumen", resumenRes.result!); }} 
+                                 disabled={exportingStates["Resumen"]}
+                                 style={resumenRes.exportedToDocs ? { background: 'rgba(66, 133, 244, 0.2)', color: '#4285f4', borderColor: '#4285f4' } : {}}
+                               >
+                                 {exportingStates["Resumen"] ? <Loader className="spin" size={14} /> : (resumenRes.exportedToDocs ? <CheckCircle size={14} /> : <FileText size={14} />)} Docs
                                </button>
                                <button className="action-btn copy-btn" onClick={(e) => { e.stopPropagation(); handleCopy(resumenRes.result!); }}>
                                  {copied ? <Check size={14} /> : <Copy size={14} />} Copiar
@@ -1091,7 +1117,7 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                               title={res.approved ? "Quitar aprobación" : "Aprobar y Exportar"}
                               style={{ background: res.approved ? 'rgba(0, 255, 150, 0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${res.approved ? 'var(--neon-green)' : 'rgba(255,255,255,0.15)'}`, borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', color: res.approved ? 'var(--neon-green)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: res.approved ? 'bold' : 'normal', transition: 'all 0.2s' }}
                             >
-                              <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'}
+                              <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'} {res.exportedToDocs && <FileText size={12} style={{ marginLeft: '4px', color: '#4285f4' }} title="Subido a Docs" />}
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); invokeAgent(agent.title, true); }}
@@ -1152,10 +1178,11 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                              <button
                                className="action-btn gdocs-btn"
                                onClick={(e) => { e.stopPropagation(); exportAgentToDocs(agent.title, res.result!); }}
-                               title="Exportar a Google Docs"
+                               title={res.exportedToDocs ? "Ya exportado, presiona para exportar otra vez" : "Exportar a Google Docs"}
                                disabled={exportingStates[agent.title]}
+                               style={res.exportedToDocs ? { background: 'rgba(66, 133, 244, 0.2)', color: '#4285f4', borderColor: '#4285f4' } : {}}
                              >
-                               {exportingStates[agent.title] ? <Loader className="spin" size={14} /> : <FileText size={14} />} Docs
+                               {exportingStates[agent.title] ? <Loader className="spin" size={14} /> : (res.exportedToDocs ? <CheckCircle size={14} /> : <FileText size={14} />)} Docs
                              </button>
                              
                              <button 

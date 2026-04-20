@@ -19,6 +19,7 @@ export interface HistoryEntry {
     result: string | null;
     wordCount?: number;
     approved?: boolean;
+    exportedToDocs?: boolean;
   }>;
 }
 
@@ -49,16 +50,18 @@ function App() {
              resultsMap[agent] = {
                 result: d.results[agent].text || null,
                 approved: d.results[agent].status === 'approved',
-                wordCount: d.results[agent].text ? d.results[agent].text.split(/\s+/).length : 0
+                wordCount: d.results[agent].text ? d.results[agent].text.split(/\s+/).length : 0,
+                exportedToDocs: d.results[agent].exportedToDocs || false
              }
           });
         }
         
-        if (d.resumen) {
-           resultsMap["Resumen Absoluto"] = {
+        if (d.resumen && !resultsMap["Resumen"]) {
+           resultsMap["Resumen"] = {
               result: d.resumen,
               approved: true,
-              wordCount: d.resumen.split(/\s+/).length
+              wordCount: d.resumen.split(/\s+/).length,
+              exportedToDocs: false
            };
         }
 
@@ -96,15 +99,16 @@ function App() {
     Object.keys(entry.results).forEach(agent => {
         resultsMap[agent] = {
            text: entry.results[agent].result,
-           status: entry.results[agent].approved ? 'approved' : 'completed'
+           status: entry.results[agent].approved ? 'approved' : 'completed',
+           exportedToDocs: entry.results[agent].exportedToDocs || false
         }
     });
 
-    // Check if we have Resumen Absoluto
+    // We maintain 'resumen' directly at document root for backward-compatibility with Telegram Bot
     let resumenText = null;
     if (resultsMap["Resumen"] && resultsMap["Resumen"].text) {
         resumenText = resultsMap["Resumen"].text;
-        delete resultsMap["Resumen"];
+        // Don't delete it from resultsMap so we preserve exportedToDocs metadata there
     }
     
     await setDoc(doc(db, 'studies', entry.id), {
