@@ -854,15 +854,205 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
               {agents.map((agent, idx) => {
                 const res = globalResults[agent.title];
                 
-                // Si es el agente Resumen y no tiene resultados (y no está cargando), lo mostramos como un CTA grande al final
-                if (agent.title === "Resumen" && !res && !generatingSummary) return null;
+                // Resumen agent: always show a special card when there are results
+                if (agent.title === "Resumen") {
+                  const resumenRes = globalResults["Resumen"];
+                  const isResumenExpanded = expandedAgent === "Resumen";
+                  const otherAgents = agents.filter(a => a.title !== "Resumen");
+                  const allOthersDone = otherAgents.every(a => {
+                    const r = globalResults[a.title];
+                    return r && !r.loading;
+                  });
+
+                  return (
+                    <div key={idx} className={`agent-accordion-item ${isResumenExpanded ? 'expanded' : ''} ${resumenRes?.loading ? 'loading' : 'done'}`} style={{ border: '2px solid var(--neon-red)', marginTop: '8px' }}>
+                      <div 
+                        className="agent-accordion-header" 
+                        onClick={() => {
+                          if (resumenRes?.result && !resumenRes.loading) {
+                            setExpandedAgent(isResumenExpanded ? null : "Resumen");
+                          }
+                        }}
+                        style={{ '--agent-color': agent.color } as React.CSSProperties}
+                      >
+                        <div className="header-icon">{agent.icon}</div>
+                        <div className="header-info" style={{ flex: 1 }}>
+                          <h4>{agent.title} <span className="subtitle">{agent.subtitle}</span></h4>
+                          <p>{agent.description}</p>
+                          
+                          {/* Agent approval checklist */}
+                          <div className="resumen-checklist" style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                            marginTop: '12px'
+                          }}>
+                            {otherAgents.map((oa, oaIdx) => {
+                              const oaRes = globalResults[oa.title];
+                              const isApproved = oaRes?.approved;
+                              const isDone = oaRes && !oaRes.loading && oaRes.result;
+                              const isLoading = oaRes?.loading;
+                              const hasError = oaRes?.error;
+                              return (
+                                <div key={oaIdx} style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: isApproved ? 700 : 500,
+                                  background: isApproved 
+                                    ? 'rgba(0, 255, 150, 0.12)' 
+                                    : hasError 
+                                      ? 'rgba(255, 68, 102, 0.1)' 
+                                      : 'rgba(255, 255, 255, 0.04)',
+                                  border: `1px solid ${isApproved ? 'var(--neon-green)' : hasError ? 'rgba(255, 68, 102, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                  color: isApproved 
+                                    ? 'var(--neon-green)' 
+                                    : hasError 
+                                      ? 'var(--neon-red)' 
+                                      : 'var(--text-secondary)',
+                                  transition: 'all 0.3s ease'
+                                }}>
+                                  {isApproved ? (
+                                    <CheckCircle size={11} />
+                                  ) : isLoading ? (
+                                    <Loader className="spin" size={11} />
+                                  ) : hasError ? (
+                                    <span style={{ fontSize: '11px' }}>✕</span>
+                                  ) : isDone ? (
+                                    <span style={{ fontSize: '11px', opacity: 0.5 }}>○</span>
+                                  ) : (
+                                    <span style={{ fontSize: '11px', opacity: 0.3 }}>·</span>
+                                  )}
+                                  {oa.title}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="header-status">
+                          {resumenRes?.loading ? (
+                            <div className="status-loading" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="percent">{Math.round(resumenRes.progress)}%</span>
+                              <div className="mini-progress-bar">
+                                <div className="mini-progress-fill" style={{ width: `${resumenRes.progress}%`, backgroundColor: agent.color }} />
+                              </div>
+                            </div>
+                          ) : resumenRes?.result ? (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span className="done-text">✓</span>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); invokeAgent("Resumen", true); }}
+                                title="Rehacer resumen"
+                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', transition: 'all 0.2s' }}
+                              >
+                                <RefreshCw size={12} />
+                              </button>
+                              <ChevronDown className={`expand-chevron ${isResumenExpanded ? 'rotated' : ''}`} />
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleGenerateSummary(); }}
+                              disabled={numApproved === 0 || generatingSummary || isSearching || !allOthersDone}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 18px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                cursor: (numApproved === 0 || isSearching || !allOthersDone) ? 'not-allowed' : 'pointer',
+                                background: numApproved > 0 && allOthersDone
+                                  ? 'linear-gradient(135deg, var(--neon-red), #ff6b6b)'
+                                  : 'rgba(255, 255, 255, 0.06)',
+                                color: numApproved > 0 && allOthersDone ? '#fff' : 'var(--text-secondary)',
+                                boxShadow: numApproved > 0 && allOthersDone ? '0 0 20px rgba(255, 51, 102, 0.3)' : 'none',
+                                transition: 'all 0.3s ease',
+                                opacity: (numApproved === 0 || isSearching || !allOthersDone) ? 0.5 : 1
+                              }}
+                            >
+                              {generatingSummary ? (
+                                <><Loader className="spin" size={14} /> Generando...</>
+                              ) : (
+                                <><Layers size={14} /> Generar ({numApproved}/7)</>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {isResumenExpanded && resumenRes?.result && (
+                        <div className="agent-accordion-content markdown-body">
+                          <div className="agent-metrics" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                              📝 Palabras generadas: <strong>{resumenRes.wordCount}</strong>
+                            </span>
+                            <div className="agent-tool-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                               <button className="action-btn" onClick={(e) => { e.stopPropagation(); handleGenerateSummary(); }} disabled={numApproved === 0}>
+                                 <RefreshCw size={14} /> Rehacer
+                               </button>
+                               <button className="action-btn" onClick={(e) => { e.stopPropagation(); setAgentEditing("Resumen", !resumenRes.isEditing); }}>
+                                 <Edit2 size={14} /> Editar
+                               </button>
+                               <button className="action-btn gdocs-btn" onClick={(e) => { e.stopPropagation(); exportAgentToDocs("Resumen", resumenRes.result!); }} disabled={exportingStates["Resumen"]}>
+                                 {exportingStates["Resumen"] ? <Loader className="spin" size={14} /> : <FileText size={14} />} Docs
+                               </button>
+                               <button className="action-btn copy-btn" onClick={(e) => { e.stopPropagation(); handleCopy(resumenRes.result!); }}>
+                                 {copied ? <Check size={14} /> : <Copy size={14} />} Copiar
+                               </button>
+                            </div>
+                          </div>
+
+                          {resumenRes.isEditing && (
+                            <div className="agent-edit-panel" style={{ marginBottom: '20px', padding: '16px', backgroundColor: 'rgba(var(--accent-rgb), 0.05)', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <Edit2 size={16} color="var(--neon-cyan)" />
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: 600 }}>Modo Canvas Activado</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input 
+                                  type="text" 
+                                  className="main-search-input"
+                                  style={{ flex: 1, fontSize: '0.9rem', padding: '8px 12px' }}
+                                  placeholder="Instrucción general (Ej: Hazlo más enfocado en los jóvenes)..."
+                                  value={resumenRes.editPrompt || ''}
+                                  onChange={(e) => updateEditPrompt("Resumen", e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && resumenRes.editPrompt) invokeAgent("Resumen", false, resumenRes.editPrompt); }}
+                                />
+                                <button 
+                                  className="main-search-button"
+                                  style={{ width: 'auto', padding: '0 16px' }}
+                                  onClick={(e) => { e.stopPropagation(); invokeAgent("Resumen", false, resumenRes.editPrompt); }}
+                                  disabled={!resumenRes.editPrompt}
+                                >
+                                  <Send size={16} /> Ajustar
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="markdown-wrapper" style={{ position: 'relative', userSelect: 'text' }}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {resumenRes.result || ''}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
                 
                 if (!res) return null;
                 
                 const isExpanded = expandedAgent === agent.title;
                 
                 return (
-                  <div key={idx} className={`agent-accordion-item ${isExpanded ? 'expanded' : ''} ${res.loading ? 'loading' : 'done'}`} style={{ border: agent.title === "Resumen" ? '2px solid var(--neon-red)' : undefined }}>
+                  <div key={idx} className={`agent-accordion-item ${isExpanded ? 'expanded' : ''} ${res.loading ? 'loading' : 'done'}`}>
                     <div 
                       className="agent-accordion-header" 
                       onClick={() => !res.loading && setExpandedAgent(isExpanded ? null : agent.title)}
@@ -896,15 +1086,13 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                         ) : res.result ? (
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <span className="done-text">✓</span>
-                            {agent.title !== "Resumen" && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleApproveAgent(agent.title, res.result!); }}
-                                title={res.approved ? "Quitar aprobación" : "Aprobar y Exportar"}
-                                style={{ background: res.approved ? 'rgba(0, 255, 150, 0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${res.approved ? 'var(--neon-green)' : 'rgba(255,255,255,0.15)'}`, borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', color: res.approved ? 'var(--neon-green)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: res.approved ? 'bold' : 'normal', transition: 'all 0.2s' }}
-                              >
-                                <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'}
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleApproveAgent(agent.title, res.result!); }}
+                              title={res.approved ? "Quitar aprobación" : "Aprobar y Exportar"}
+                              style={{ background: res.approved ? 'rgba(0, 255, 150, 0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${res.approved ? 'var(--neon-green)' : 'rgba(255,255,255,0.15)'}`, borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', color: res.approved ? 'var(--neon-green)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: res.approved ? 'bold' : 'normal', transition: 'all 0.2s' }}
+                            >
+                              <CheckCircle size={12} /> {res.approved ? 'APROBADO' : 'Aprobar'}
+                            </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); invokeAgent(agent.title, true); }}
                               title="Rehacer análisis"
@@ -948,20 +1136,18 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                                <Edit2 size={14} /> Editar
                              </button>
                              
-                             {agent.title !== "Resumen" && (
-                               <button 
-                                 className={`action-btn ${res.approved ? 'approved-btn' : ''}`}
-                                 onClick={(e) => { e.stopPropagation(); toggleApproveAgent(agent.title, res.result!); }}
-                                 style={{ 
-                                   backgroundColor: res.approved ? 'rgba(0, 255, 150, 0.2)' : '', 
-                                   borderColor: res.approved ? 'var(--neon-green)' : '',
-                                   color: res.approved ? 'var(--neon-green)' : '' 
-                                 }}
-                                 title={res.approved ? "Quitar aprobación" : "Aprobar el texto para incluirlo en el resumen y exportar a Docs"}
-                               >
-                                 <CheckCircle size={14} /> {res.approved ? 'Desaprobar' : 'Aprobar'}
-                               </button>
-                             )}
+                             <button 
+                               className={`action-btn ${res.approved ? 'approved-btn' : ''}`}
+                               onClick={(e) => { e.stopPropagation(); toggleApproveAgent(agent.title, res.result!); }}
+                               style={{ 
+                                 backgroundColor: res.approved ? 'rgba(0, 255, 150, 0.2)' : '', 
+                                 borderColor: res.approved ? 'var(--neon-green)' : '',
+                                 color: res.approved ? 'var(--neon-green)' : '' 
+                               }}
+                               title={res.approved ? "Quitar aprobación" : "Aprobar el texto para incluirlo en el resumen y exportar a Docs"}
+                             >
+                               <CheckCircle size={14} /> {res.approved ? 'Desaprobar' : 'Aprobar'}
+                             </button>
                              
                              <button
                                className="action-btn gdocs-btn"
@@ -1063,26 +1249,6 @@ export function Dashboard({ onSaveToHistory, loadedEntry, onClearLoaded, onGoHom
                   </div>
                 );
               })}
-
-              {!isSearching && numApproved > 0 && !globalResults["Resumen"] && (
-                <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                  <button 
-                    className="main-search-button"
-                    style={{ width: 'auto', padding: '12px 30px', fontSize: '1.1rem', backgroundColor: 'var(--neon-red)', color: '#fff', boxShadow: '0 0 20px rgba(255, 51, 102, 0.4)' }}
-                    onClick={handleGenerateSummary}
-                    disabled={generatingSummary}
-                  >
-                    {generatingSummary ? (
-                      <><Loader className="spin" size={20} style={{ marginRight: '10px' }} /> Generando Mega-Ensayo...</>
-                    ) : (
-                      <><Layers size={20} style={{ marginRight: '10px' }} /> Generar Resumen Absoluto ({numApproved} aprobados)</>
-                    )}
-                  </button>
-                  <p style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Construirá el ensayo definitivo uniendo los informes que has aprobado.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         ) : (
